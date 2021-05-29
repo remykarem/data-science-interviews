@@ -337,7 +337,7 @@ In an ideal scenario where there is a perfectly separable data, both precision a
 
 **What is the ROC curve? When to use it? ‍⭐️**
 
-ROC stands for *Receiver Operating Characteristics*. The diagrammatic representation that shows the contrast between true positive rate vs true negative rate. It is used when we need to predict the probability of the binary outcome.
+ROC stands for *Receiver Operating Characteristics*. The diagrammatic representation that shows the contrast between true positive rate vs false positive rate. It is used when we need to predict the probability of the binary outcome.
 
 <br/>
 
@@ -442,7 +442,8 @@ L2 regularization adds a penalty term to our cost function which is equal to the
 
 **How do we select the right regularization parameters? 👶**
 
-Answer here
+Regularization parameters can be chosen using a grid search, for example https://scikit-learn.org/stable/modules/linear_model.html has one formula for the implementing for regularization, alpha in the formula mentioned can be found by doing a RandomSearch or a GridSearch on a set of values and selecting the alpha which gives the least cross validation or validation error.
+
 
 <br/>
 
@@ -497,7 +498,9 @@ Without normalization, the weight represents the change in the output per unit c
 
 **When do we need to perform feature normalization for linear models? When it’s okay not to do it? ‍⭐️**
 
-Answer here
+Feature normalization is necessary for L1 and L2 regularizations. The idea of both methods is to penalize all the features relatively equally. This can't be done effectively if every feature is scaled differently. 
+
+Linear regression without regularization techniques can be used without feature normalization. Also, regularization can help to make the analytical solution more stable, — it adds the regularization matrix to the feature matrix before inverting it. 
 
 <br/>
 
@@ -689,7 +692,7 @@ Gradient boosting is a machine learning technique for regression and classificat
 
 **Is it possible to parallelize training of a gradient boosting model? How to do it? ‍⭐️**
 
-Answer here
+Yes, different frameworks provide different options to make training faster, using GPUs to speed up the process by making it highly parallelizable.For example, for XGBoost <i>tree_method = 'gpu_hist'</i> option makes training faster by use of GPUs. 
 
 <br/>
 
@@ -719,7 +722,7 @@ There are many parameters, but below are a few key defaults.
 
 **How do you approach tuning parameters in XGBoost or LightGBM? 🚀**
 
-Answer here
+Depending upon the dataset, parameter tuning can be done manually or using hyperparameter optimization frameworks such as optuna and hyperopt. In manual parameter tuning, we need to be aware of max-depth, min_samples_leaf and min_samples_split so that our model does not overfit the data but try to predict generalized characteristics of data (basically keeping variance and bias low for our model).
 
 <br/>
 
@@ -849,7 +852,7 @@ Repeat the process until the error becomes minimum.
 
 **How do we use SGD (stochastic gradient descent) for training a neural net? ‍⭐️**
 
-Answer here
+SGD approximates the expectation with few randomly selected samples (instead of the full data). In comparison to batch gradient descent, we can efficiently approximate the expectation in large data sets using SGD. For neural networks this reduces the training time a lot even considering that it will converge later as the random sampling adds noise to the gradient descent.
 
 <br/>
 
@@ -951,7 +954,7 @@ Other pooling techniques include:
 
 **Are CNNs resistant to rotations? What happens to the predictions of a CNN if an image is rotated? 🚀**
 
-Answer here
+CNNs are not resistant to rotation by design. However, we can make our models resistant by augmenting our datasets with different rotations of the raw data. The predictions of a CNN will change if an image is rotated and we did not augment our dataset accordingly. A demonstration of this occurence can be seen in [this video](https://www.youtube.com/watch?v=VO1bQo4PXV4), where a CNN changes its predicted class between a duck and a rabbit based on the rotation of the image.
 
 <br/>
 

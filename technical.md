@@ -89,7 +89,7 @@ FROM Ads AS a
   JOIN Events AS e
       ON a.ad_id = e.ad_id
 WHERE a.status = 'active'
-   AND e.date >= DATEADD(week, DATEDIFF(week,0,GETDATE()),-1)
+   AND e.date >= DATEADD(week, -1, GETDATE())
 GROUP BY a.ad_id, e.event_type, e.date
 ORDER BY e.date ASC, "count" DESC;
 ```
@@ -102,17 +102,17 @@ ORDER BY e.date ASC, "count" DESC;
 
 
 ```sql
-SELECT a.campaign_id, e.event_type, count(*)
+SELECT a.campaign_id, e.event_type, count(*) as count
 FROM Ads AS a
   INNER JOIN Events AS e
     ON a.ad_id = e.ad_id
 GROUP BY a.campaign_id, e.event_type
-ORDER BY a.campaign_id;
+ORDER BY a.campaign_id, "count" DESC
 ```
 
 <br/>
 
-**7)** The number of events over the last week per each campaign — broken down by date (most recent first).
+**7)** The number of events over the last week per each campaign and event type — broken down by date (most recent first).
 
 <img src="img/sql_7_example.png" />
 
@@ -123,58 +123,57 @@ SELECT a.campaign_id, e.event_type, e.date, count(*)
 FROM Ads AS a
   INNER JOIN Events AS e
     ON a.ad_id = e.ad_id
-WHERE (current_date > e.date)
-  AND (current_date - e.date <= 7)
+WHERE e.date >= DATEADD(week, -1, GETDATE())
 GROUP BY a.campaign_id, e.event_type, e.date
-ORDER BY e.date DESC;
+ORDER BY a.campaign_id, e.date DESC, "count" DESC;
 ```
 
 <br/>
 
-**8)** CTR (click-through rate) for each ad. CTR = number of impressions / number of clicks.
+**8)** CTR (click-through rate) for each ad. CTR = number of clicks / number of impressions.
 
 <img src="img/sql_8_example.png" />
 
 ```sql
 -- for Postgres
 
-SELECT impressions_clicks_table.campaign_id,
-       (impressions_clicks_table.impressions * 100 / impressions_clicks_table.clicks)::FLOAT || '%' AS CTR
+SELECT impressions_clicks_table.ad_id,
+       (impressions_clicks_table.clicks * 100 / impressions_clicks_table.impressions)::FLOAT || '%' AS CTR
 FROM
   (
-  SELECT a.campaign_id,
+  SELECT a.ad_id,
          SUM(CASE e.event_type WHEN 'impression' THEN 1 ELSE 0 END) impressions,
          SUM(CASE e.event_type WHEN 'click' THEN 1 ELSE 0 END) clicks
   FROM Ads AS a
     INNER JOIN Events AS e
       ON a.ad_id = e.ad_id
-  GROUP BY a.campaign_id
+  GROUP BY a.ad_id
   ) AS impressions_clicks_table
-ORDER BY impressions_clicks_table.campaign_id;
+ORDER BY impressions_clicks_table.ad_id;
 ```
 
 <br/>
 
-**9)** CVR (conversion rate) for each ad. CVR = number of clicks / number of installs.
+**9)** CVR (conversion rate) for each ad. CVR = number of conversions / number of clicks.
 
 <img src="img/sql_9_example.png" />
 
 ```sql
 -- for Postgres
 
-SELECT conversions_clicks_table.campaign_id,
+SELECT conversions_clicks_table.ad_id,
        (conversions_clicks_table.conversions * 100 / conversions_clicks_table.clicks)::FLOAT || '%' AS CVR
 FROM
   (
-  SELECT a.campaign_id,
+  SELECT a.ad_id,
          SUM(CASE e.event_type WHEN 'conversion' THEN 1 ELSE 0 END) conversions,
          SUM(CASE e.event_type WHEN 'click' THEN 1 ELSE 0 END) clicks
   FROM Ads AS a
     INNER JOIN Events AS e
       ON a.ad_id = e.ad_id
-  GROUP BY a.campaign_id
+  GROUP BY a.ad_id
   ) AS conversions_clicks_table
-ORDER BY conversions_clicks_table.campaign_id;
+ORDER BY conversions_clicks_table.ad_id;
 ```
 
 <br/>
@@ -183,7 +182,28 @@ ORDER BY conversions_clicks_table.campaign_id;
 
 <img src="img/sql_10_example.png" />
 
-Answer here
+
+```sql
+-- for Postgres
+
+SELECT conversions_clicks_table.ad_id,
+       conversions_clicks_table.date,
+       conversions_clicks_table.hour,
+       (impressions_clicks_table.clicks * 100 / impressions_clicks_table.impressions)::FLOAT || '%' AS CTR,
+       (conversions_clicks_table.conversions * 100 / conversions_clicks_table.clicks)::FLOAT || '%' AS CVR
+FROM
+  (
+  SELECT a.ad_id, e.date, e.hour,
+         SUM(CASE e.event_type WHEN 'conversion' THEN 1 ELSE 0 END) conversions,
+         SUM(CASE e.event_type WHEN 'click' THEN 1 ELSE 0 END) clicks,
+         SUM(CASE e.event_type WHEN 'impression' THEN 1 ELSE 0 END) impressions
+  FROM Ads AS a
+    INNER JOIN Events AS e
+      ON a.ad_id = e.ad_id
+  GROUP BY a.ad_id, e.date, e.hour
+  ) AS conversions_clicks_table
+ORDER BY conversions_clicks_table.ad_id, conversions_clicks_table.date DESC, conversions_clicks_table.hour DESC, "CTR" DESC, "CVR" DESC;
+```
 
 <br/>
 
@@ -191,7 +211,26 @@ Answer here
 
 <img src="img/sql_11_example.png" />
 
-Answer here
+
+```sql
+-- for Postgres
+
+SELECT conversions_clicks_table.ad_id,
+       conversions_clicks_table.date,
+       conversions_clicks_table.source,
+       (impressions_clicks_table.clicks * 100 / impressions_clicks_table.impressions)::FLOAT || '%' AS CTR
+FROM
+  (
+  SELECT a.ad_id, e.date, e.source,
+         SUM(CASE e.event_type WHEN 'click' THEN 1 ELSE 0 END) clicks,
+         SUM(CASE e.event_type WHEN 'impression' THEN 1 ELSE 0 END) impressions
+  FROM Ads AS a
+    INNER JOIN Events AS e
+      ON a.ad_id = e.ad_id
+  GROUP BY a.ad_id, e.date, e.source
+  ) AS conversions_clicks_table
+ORDER BY conversions_clicks_table.ad_id, conversions_clicks_table.date DESC, conversions_clicks_table.source, "CTR" DESC;
+```
 
 <br/>
 
@@ -320,7 +359,7 @@ def remove_duplicates(lst):
 
 # The above solution checks the values into a set and it is O(1) efficient using
 # a few of lines.
-# A shorter solution follows: it is O(n) but can be fine when lst has no "too
+# A shorter solution follows: it is O(n^2) but can be fine when lst has no "too
 # many elements" - the quantity depends by the running box.
 def remove_duplicates2(lst):
     new_list = []
@@ -941,3 +980,31 @@ print(max_sum_subarr(list1, len(list1)))
 ```
 
 <br/>
+
+**14) Three sum**. Given an array, and a target value, find all possible combinations of three distinct numbers such that the sum of these three distinct numbers is equal to the target value.
+
+Example:
+
+    Input: [12, 3, 1, 2, -6, 5, -8, 6], 0
+    Output: [[-8, 2, 6], [-8, 3, 5], [-6, 1, 5]]
+
+```python
+def threeSum(array, target):
+    array.sort()
+    triplets = []
+    
+    for i in range(len(array) - 2):
+        left = i + 1
+        right = len(array) - 1
+        while left < right:
+            currentSum = array[i] + array[left] + array[right]
+            if currentSum == target:
+                triplets.append([array[i], array[left], array[right]])
+                left += 1
+                right -= 1
+            elif currentSum > target:
+                right -= 1
+            elif currentSum < target:
+                left += 1
+    return triplets
+```
